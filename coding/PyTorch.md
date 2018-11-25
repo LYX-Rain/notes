@@ -1,6 +1,6 @@
 # PyTorch
 
-## Tensor
+## Tensor（张量）
 
 - Tensor 是 PyTorch 中重要的数据结构，可认为是一个高维数组。它可以是一个数（标量）、一维数组（向量）、二维数组（矩阵）以及更高维的数组。Tensor 和 Numpy 的 ndarrays 类似，但 Tensor 可以使用 GPU 进行加速。Tensor 的使用和 Numpy 及 Matlab 的接口十分相似
 - Tensor 的数据类型定义方式
@@ -37,6 +37,45 @@ $$ out = input +  value $$
 - torch.pow：求幂
 - torch.mm：矩阵求积
 - torch.mv：矩阵与向量求积
+
+### Torch Tensor to a NumPy Array
+
+```python
+a = torch.ones(5)
+print(a)              # tensor([1., 1., 1., 1., 1.])
+b = a.numpy()
+print(b)              # [1. 1. 1. 1. 1.]
+```
+
+### NumPy Array to Torch Tensor
+
+```python
+import numpy as np
+a = np.ones(5)
+b = torch.from_numpy(a)
+np.add(a, 1, out=a)
+print(a)
+print(b)
+# 输出
+[2. 2. 2. 2. 2.]
+tensor([2., 2., 2., 2., 2.], dtype=torch.float64)
+```
+
+### CUDA Tensors
+
+- 可以将 Tensors 的运算转移到GPU上
+
+```python
+# let us run this cell only if CUDA is available
+# We will use ``torch.device`` objects to move tensors in and out of GPU
+if torch.cuda.is_available():
+    device = torch.device("cuda")          # a CUDA device object
+    y = torch.ones_like(x, device=device)  # directly create a tensor on GPU
+    x = x.to(device)                       # or just use strings ``.to("cuda")``
+    z = x + y
+    print(z)
+    print(z.to("cpu", torch.double))       # ``.to`` can also change dtype together!
+```
 
 ## torch
 
