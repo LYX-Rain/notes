@@ -1209,3 +1209,31 @@ plt.imshow(img2),plt.show()
 
 - Tip：对于大值，np.math.factorial 返回的数据类型是 long，而不是 int，具有长值的数组是 dtype 对象，因为不能使用 NumPy 的类型存储，可以通过以下方式重新转换最终结果
 > WeightMesh = np.array(AyMesh*AxMesh, dtype=float)
+
+### Optical Flow（光流）
+
+- 光流的概念是指在连续的两帧图像中由于图像中的物体移动或者摄像头的移动导致的图像中目标像素的移动
+- 由观察者和场景之间的相对运动引起的视觉场景中物体表面和边缘的明显运动模式
+- 光流是二维矢量场，表示了一个点从第一帧到第二帧的位移
+- ![image](image/optical_flow_basic1.jpg)
+- 上面的图表示了一个球在连续的5帧图像中的运动。箭头表示了它的位移矢量
+- 光流法的工作原理基于如下假设：
+    1. 场景的像素强度在相邻帧之间基本不变
+    2. 相邻像素具有相似的运动
+- 第一帧中的像素 I(x,y,t) 表示在时刻 t 时像素 I(x,y) 的值，在经过 dt 时间后，该像素在下一帧中移动了 (dx,dy)，由于这些像素是相同的且强度不变，因此可以表示成：
+$$ I(x,y,t) = I(x+dx,y+dy,t+dt) $$
+- 假设移动很小，使用泰勒公式可以表示成：
+$$ I(x+dx,y+dy,t+dt)=I(x,y,t)+{\partial I\over\partial x}\Delta x+{\partial I\over\partial y}\Delta y+{\partial I\over\partial t}\Delta t+H.O.T$$
+- $ H.O.T $ 是高阶无穷小
+- 由第一个假设和使用泰勒公式展开的式子可以得到：
+$$ {\partial I\over\partial x}\Delta x+{\partial I\over\partial y}\Delta y+{\partial I\over\partial t}\Delta t=0 $$
+- 除以 $ \partial t $ 得
+$$ f_xu+f_yu+f_t=0 $$
+- 其中
+$$ f_x={\partial f\over \partial x};f_y={\partial f\over \partial y};f_t={\partial f\over \partial t};u={dx\over dt};v={dy\over dt} $$
+- 上述方程称为光流方程，$ f_x $ 和 $ f_y $ 是图像的梯度，$ f_t $ 是沿时间的梯度。但是 u 和 v 是未知的，我们无法用一个方程解两个未知数，因此必须使用其他方法解决这个问题，其中一个方法是 Lucas-Kanade
+
+#### Lucas-Kanade method
+
+- 基于第二条假设，Lucas-Kanade 方法使用了一个 3x3 的窗口，在这个窗口中的 9 个像素点满足方程
+$$ f_xu+f_yu+f_t=0 $$
