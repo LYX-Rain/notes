@@ -1210,6 +1210,8 @@ plt.imshow(img2),plt.show()
 - Tip：对于大值，np.math.factorial 返回的数据类型是 long，而不是 int，具有长值的数组是 dtype 对象，因为不能使用 NumPy 的类型存储，可以通过以下方式重新转换最终结果
 > WeightMesh = np.array(AyMesh*AxMesh, dtype=float)
 
+## Video Analysis（视频分析）
+
 ### Optical Flow（光流）
 
 - 光流的概念是指在连续的两帧图像中由于图像中的物体移动或者摄像头的移动导致的图像中目标像素的移动
@@ -1231,9 +1233,80 @@ $$ {\partial I\over\partial x}\Delta x+{\partial I\over\partial y}\Delta y+{\par
 $$ f_xu+f_yu+f_t=0 $$
 - 其中
 $$ f_x={\partial f\over \partial x};f_y={\partial f\over \partial y};f_t={\partial f\over \partial t};u={dx\over dt};v={dy\over dt} $$
-- 上述方程称为光流方程，$ f_x $ 和 $ f_y $ 是图像的梯度，$ f_t $ 是沿时间的梯度。但是 u 和 v 是未知的，我们无法用一个方程解两个未知数，因此必须使用其他方法解决这个问题，其中一个方法是 Lucas-Kanade
+- 上述方程称为光流方程，$ f_x $ 和 $ f_y $ 是图像的梯度，$ f_t $ 是沿时间的梯度。但是 u 和 v 是未知的，我们无法用一个方程解两个未知数，那么就有 Lucas-Kanade 方法来解决这个问题
 
-#### Lucas-Kanade method
+#### Lucas-Kanade 算法
 
-- 基于第二条假设，Lucas-Kanade 方法使用了一个 3x3 的窗口，在这个窗口中的 9 个像素点满足方程
+- 基于第二条假设，就是所有的相邻像素都有相同的移动 Lucas-Kanade 方法使用了一个 3x3 的窗口，在这个窗口中的 9 个像素点满足方程
 $$ f_xu+f_yu+f_t=0 $$
+- 将点代入方程，现在的问题就变成了使用9个点求解两个未知量，解的个数大于未知数的个数，这是个超定方程，使用最小二乘的方法来求解最优值。如下为计算得到的结果
+$$ \begin{bmatrix} u \\ v \\ \end{bmatrix} = \begin{bmatrix} \sum_if_{x_i}^2 & \sum_if_{x_i}f_{y_i} \\ \sum_if_{x_i}f_{y_i} & \sum_if_{y_i}^2 \\ \end{bmatrix}^{-1} \begin{bmatrix} -\sum_if_{x_i}f_{y_i} \\ -\sum_if_{y_i}f_{t_i} \\ \end{bmatrix} $$
+- 检测逆矩阵与 Harris 角点检测很像，说明角点是适合用来做跟踪的
+- 想法很简单，给出一些点用来追踪，从而获得点的光流向量。但是有另外一个问题需要解决，目前讨论的运动都是小步长的运动，如果有幅度大的运动出现，本算法就会失效
+- 使用的解决办法是利用图像金字塔。在金字塔顶端的小尺寸图片当中，大幅度的运动就变成了小幅度的运动。所以使用LK算法，可以得到尺度空间上的光流
+
+#### OpenCV 中的 LK 光流
+
+- OpenCV 库提供函数 cv.calcOpticalFlowPyrLK()
+- 一个简单应用示例：我们要跟踪视频中某些点，先使用 cv.goodFeaturesToTrack() 来获取这些点
+- 首先取第一帧，检测其中的 Shi-Tomasi 角点，然后使用 Lucas-Kanade 算法来迭代地跟踪这些特征点。迭代的方式就是向 cv.calcOpticalFlowPyrLK() 函数传入上一帧图片和其中的特征点以及当前帧图片，函数会返回当前帧的特征点，每个点都带有一个状态值（0 或 1），如果在当前帧找到了上一帧中的点，这个点的状态值就是 1，否则就是 0。将状态值为 1 的点作为下次特征点的输入，不停迭代
+
+> nextPts, status, err = cv.calcOpticalFlowPyrLK(prevImg, nextImg, prevPts, nextPts[, status[, err[, winSize[, maxLevel[, criteria[, flags[, minEigThreshold]]]]]]])
+- 返回值：
+    - nextPts：二维点的输出矢量（具有单精度浮点坐标），包含第二图像中输入特征的计算新位置; 当传递 OPTFLOW_USE_INITIAL_FLOW 标志时，向量必须与输入中的大小相同
+    - status：状态值（无符号字符型）
+    - err：向量中的每个特征对应的错误率
+- 输入值：
+    - prevImg：上一帧图片
+    - nextImg：当前帧图片
+    - prevPts：上一帧找到的特征点向量
+    - winSize：在图像金字塔中计算局部连续运动的窗口的尺寸
+    - maxLevel：图像金字塔层数，0 代表不使用金字塔（单极）
+    - criteria：指定迭代搜索算法的终止条件（在指定的最大迭代次数criteria.maxCount之后或当搜索窗口移动小于criteria.epsilon时）
+    - flags：选择计算方法：
+        1. OPTFLOW_USE_INITIAL_FLOW：使用初始估计，存储在nextPts中; 如果未设置标志，则将prevPts复制到nextPts并将其视为初始估计
+        2. OPTFLOW_LK_GET_MIN_EIGENVALS：使用最小特征值作为误差测量; 如果未设置标志，则将原始位置和移动点之间的色块之间的 L1 距离除以窗口中的像素数，用作误差测量
+    - minEigThreshold：该算法计算光流方程的2×2正常矩阵的最小特征值，除以窗口中的像素数，如果此值小于 minEigThreshold，则会过滤掉相应的功能并且不会处理该光流，因此它允许删除坏点并获得性能提升
+
+### Background Subtraction（背景消除）
+
+#### Basics（基础）
+
+- 背景减除算法是很多以机器视觉为基础的应用中，非常重要的预处理算法。例如，使用固定的摄像头来统计一个房间的进出人数或者交通摄像头提取关于交通工具的信息等等。在所有这些例子当中，首先要做的就是把人和交通工具单独提取出来。从技术上来讲，需要把移动的前景从静止的背景当中提取出来
+- 如果你要一张单独的背景图片，例如一个没有游客的房间照片，没有任何交通工具的街道照片等等，这有一个很简单的方法，只要从新的图片当中减去背景图片即可。你就能得到单独的前景照片。但是在多数的例子当中，你不可能有这样的背景照片，所以我们需要从我们手头有的照片中提取前景。当存在阴影等效果的时候，这相当复杂了。因为影子是会移动的，简单的减除方法会将阴影部分同样当成是前景。这是个很糟糕的事情
+- 如果已经有一张单独是背景的图像，就只需将新图像中的背景减去即可。但大多数情况下，单独的背景图像是没有的。所以需要从已有的图像中提取背景当存在阴影时，情况会变得更复杂，由于阴影也会移动，简单的减法会将阴影部分当作是前景，产生误判
+- 下面介绍几个算法，OpenCV 已经实现了3种很好用的方法
+
+#### BackgroundSubtractorMOG
+
+- 这是一个基于高斯混合的背景/前景分割算法，来自 2001 年P. KadewTraKuPong 和 R. Bowden 发表的论文：“An improved adaptive background mixture model for real-time tracking with shadow detection”
+- 它使用的方法是对每个背景像素由 k 个混合高斯模型进行建模，k 通常为 3 到 5。色彩信息在场景中存在时间的比例作为高斯混合模型的权重大小。最有可能的背景颜色信息是停留时间最长且更为静止的
+- 使用时要先通过函数 cv.createBackgroundSubtractorMOG() 来创建一个背景对象，该函数有些可选参数，如历史长度、高斯混合数、阈值等，我们都使用默认值（缺省）。然后在视频循环中，使用 backgroundsubtractor.apply() 方法获取前景的蒙板
+> cv.createBackgroundSubtractorMOG([, history[, nmixtures[, backgroundRatio[, noiseSigma]]]])
+- history：历史的长度
+- nmixtures：高斯混合数
+- backgroundRatio：背景比率
+- noiseSigma：噪声强度（亮度或每个颜色通道的标准差），0 表示一些自动值
+
+```python
+import numpy as np
+import cv2 as cv
+
+cap = cv.VideoCapture('vtest.avi')
+
+fgbg = cv.createBackgroundSubtractorMOG2()
+
+while(cap.isOpened()):
+    ret, frame = cap.read()
+    if ret == True:
+
+        fgmask = fgbg.apply(frame)
+
+        cv.imshow('frame',fgmask)
+        k = cv.waitKey(30) & 0xff
+        if k == 27:
+            break
+
+cap.release()
+cv.destroyAllWindows()
+```
