@@ -1,5 +1,9 @@
 # PyTorch
 
+## 介绍
+
+- 2017 年 1 月，Facebook 开源了 PyTorch，PyTorch 的前身是 Torch，Torch 是一个科学计算框架，支持机器学习算法，易用而且提供高效的算法实现，这得益于 LuaJIT 和一个底层的 C 实现。由于 Torch 由 Lua 语言编写，Torch 在神经网络方面具有优势，但由于 Lua 语言并不流行，开发者就把 Torch 移植到 Python 语言中，形成了 PyTorch
+
 ## Tensor（张量）
 
 - Tensor 是 PyTorch 中重要的数据结构，可认为是一个高维数组。它可以是一个数（标量）、一维数组（向量）、二维数组（矩阵）以及更高维的数组。Tensor 和 Numpy 的 ndarrays 类似，但 Tensor 可以使用 GPU 进行加速。Tensor 的使用和 Numpy 及 Matlab 的接口十分相似
@@ -132,6 +136,7 @@ Sequential(
 
 ### Convolution layers（卷积层）
 
+- 卷积是一种局部操作，通过一定大小的卷积核作用于局部图像区域，从而得到图像的局部信息
 - 一维卷积层，输入的尺度是(N, C_in,L)，输出尺度（ N,C_out,L_out）的计算方式：
 $$ out(N_i, C_{out_j})=bias(C {out_j})+\sum^{C{in}-1}{k=0}weight(C{out_j},k)\bigotimes input(N_i,k) $$
 - bigotimes: 表示相关系数计算 
@@ -139,14 +144,19 @@ $$ out(N_i, C_{out_j})=bias(C {out_j})+\sum^{C{in}-1}{k=0}weight(C{out_j},k)\big
 - dilation: 用于控制内核点之间的距离，详细描述在这里 
 - groups: 控制输入和输出之间的连接， group=1，输出是所有的输入的卷积；group=2，此时相当于有并排的两个卷积层，每个卷积层计算输入通道的一半，并且产生的输出是输出通道的一半，随后将这两个输出连接起来
 > torch.nn.Conv1d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True)
-  - in_channels(int) – 输入信号的通道
-  - out_channels(int) – 卷积产生的通道
-  - kerner_size(int or tuple) - 卷积核的尺寸
-  - stride(int or tuple, optional) - 卷积步长
-  - padding (int or tuple, optional)- 输入的每一条边补充0的层数 
-  - dilation(int or tuple, `optional``) – 卷积核元素之间的间距
-  - groups(int, optional) – 从输入通道到输出通道的阻塞连接数
-  - bias(bool, optional) - 如果bias=True，添加偏置
+  - in_channels(int)：输入信号的通道
+  - out_channels(int)：卷积产生的通道
+  - kerner_size(int or tuple)：卷积核的尺寸
+  - stride(int or tuple, optional)：卷积步长
+  - padding (int or tuple, optional)：是否对输入数据填充 0，指定填充 0 的层数。Padding 可以将输入数据的区域改造成是卷积核大小的整数倍，避免不满足卷积核大小的部分数据被忽略
+  - dilation(int or tuple, optional)：卷积核元素之间的间距
+  - groups(int, optional)：将输入数据分成组，in_channels 应该被组数整除
+  - bias(bool, optional)：如果 bias=True，添加偏置
+```python
+m = nn.Conv1d(16, 33, 3, stride=2)
+input = autograd.Variable(torch.randn(20, 16, 50))
+output = m(input)
+```
 - shape:
   - 输入: (N,C_in,L_in) 
   - 输出: (N,C_out,L_out) 
@@ -155,15 +165,8 @@ $$L_{out}=floor((L_{in}+2padding-dilation(kernerl_size-1)-1)/stride+1)$$
 - 变量
   - weight(tensor) - 卷积的权重，大小是(out_channels, in_channels, kernel_size) 
   - bias(tensor) - 卷积的偏置系数，大小是（out_channel）
-
-```python
-m = nn.Conv1d(16, 33, 3, stride=2)
-input = autograd.Variable(torch.randn(20, 16, 50))
-output = m(input)
-```
-
--   在由多个输入平面组成的输入信号上应用2D卷积
--  二维卷积层, 输入的尺度是(N, C_in,H,W)，输出尺度（N,C_out,H_out,W_out）的计算方式：
+- 在由多个输入平面组成的输入信号上应用2D卷积
+- 二维卷积层, 输入的尺度是(N, C_in,H,W)，输出尺度（N,C_out,H_out,W_out）的计算方式：
 $$out(N_i, C_{out_j})=bias(C_{out_j})+\sum^{C_{in}-1}{k=0}weight(C{out_j},k)\bigotimes input(N_i,k)$$ 
 > torch.nn.Conv2d(in_channels, out_channels, kernel_size, stride=1, padding=0, dilation=1, groups=1, bias=True)
   - in_channels(int) – 输入信号的通道
@@ -196,6 +199,8 @@ output = m(input)
 
 #### Pooling layers（池化层）
 
+##### MaxPool2d
+
 > torch.nn.MaxPool2d(kernel_size, stride=None, padding=0, dilation=1, return_indices=False, ceil_mode=False)
 - 对于输入信号的输入通道，提供2维最大池化（max pooling）操作
 - 如果输入的大小是(N,C,H,W)，那么输出的大小是(N,C,H_out,W_out)和池化窗口大小(kH,kW)的关系是： 
@@ -204,12 +209,12 @@ $$out(N_i, C_j,k)=max^{kH-1}{m=0}max^{kW-1}{m=0}input(N_{i},C_j,stride[0]h+m,str
 - dilation用于控制内核点之间的距离
 - 参数 kernel_size，stride, padding，dilation数据类型： 可以是一个int类型的数据，此时卷积height和width值相同; 也可以是一个tuple数组（包含来两个int类型的数据），第一个int数据表示height的数值，tuple的第二个int类型的数据表示width的数值
 - 参数：
-  - kernel_size(int or tuple) - max pooling的窗口大小
-  - stride(int or tuple, optional) - max pooling的窗口移动的步长。默认值是kernel_size
-  - padding(int or tuple, optional) - 输入的每一条边补充0的层数
-  - dilation(int or tuple, optional) – 一个控制窗口中元素步幅的参数
-  - return_indices - 如果等于True，会返回输出最大值的序号，对于上采样操作会有帮助
-  - ceil_mode - 如果等于True，计算输出信号大小的时候，会使用向上取整，代替默认的向下取整的操作
+  - kernel_size(int or tuple)：max pooling 的窗口大小
+  - stride(int or tuple, optional)：max pooling 的窗口移动的步长，默认值是kernel_size
+  - padding(int or tuple, optional)：输入的每一条边填充 0 的层数
+  - dilation(int or tuple, optional)：一个控制窗口中元素步幅的参数
+  - return_indices：如果等于True，会返回输出最大值的序号，对于上采样操作会有帮助
+  - ceil_mode：如果等于 True，计算输出信号大小的时候，会使用向上取整，代替默认的向下取整的操作
 - shape: 
   - 输入: (N,C,H_{in},W_in) 
   - 输出: (N,C,H_out,W_out) 
@@ -317,10 +322,7 @@ for input, target in dataset:
 
 ```python
 imagenet_data = torchvision.datasets.ImageFolder('path/to/imagenet_root/')
-data_loader = torch.utils.data.DataLoader(imagenet_data,
-                                          batch_size=4,
-                                          shuffle=True,
-                                          num_workers=args.nThreads)
+data_loader = torch.utils.data.DataLoader(imagenet_data, batch_size=4, shuffle=True, num_workers=args.nThreads)
 ```
 
 - 目前包含了以下数据集：
@@ -343,10 +345,10 @@ data_loader = torch.utils.data.DataLoader(imagenet_data,
 
 - [MNIST](http://yann.lecun.com/exdb/mnist/) Dataset
 > torchvision.datasets.MNIST(root, train=True, transform=None, target_transform=None, download=False)
-  - root(string)：存在processed / training.pt 和 processed / test.pt的数据集的根目录
+  - root(string)：数据集，存在于根目录 processed/training.pt 和 processed/test.pt 中
   - train：True = 训练集，False = 测试集
-  - download：True = 从Internet下载数据集并将其放在根目录中。 如果已下载数据集，则不会再次下载
-  - transform：一个函数/转换，它接收PIL图像并返回转换后的版本
+  - download：如果为 True 将从 Internet 下载数据集并将其放在根目录中，如果已下载数据集，则不会再次下载
+  - transform：接收 PIL 映像并返回转换版本的函数/变换
   - target_transform：接收目标并对其进行转换的函数/转换
 
 #### Fashion-MNIST
@@ -433,9 +435,53 @@ root/class_y/asd932_.ext
 > torch.utils.data.DataLoader(dataset, batch_size=1, shuffle=False, sampler=None, batch_sampler=None, num_workers=0, collate_fn=<function default_collate>, pin_memory=False, drop_last=False, timeout=0, worker_init_fn=None)
   - dataset：载入的数据集名称
   - batch_size：每批打包加载的样本数（默认为1）
-  - shuffle：True = 数据会随机的装载打包（默认为False）
-  - num_workers：用于数据加载的子进程数（默认为0，表示数据将加载到主进程中）
+  - shuffle：如果为 True 在每个 eqoch 重新排列数据
+  - sampler：从数据集中提取样本
+  - batch_sampler：一次返回一批索引
+  - num_workers：用于数据加载的子进程数（默认为0，表示数据将在主进程中加载）
+  - collate_fn：合并样本列表以形成小批量
+  - pin_memory：如果为 True，数据加载器在返回前将 Tensor（张量）复制到 CUDA 固定内存中
+  - drop_last：如果数据集大小不能被 batch_size 整除，设置为 True 可删除最后一个不完整的批处理；设置为 False 则最后一个 batch 将更小
 
+### torchvision.models
+
+- torchvision.models 模块的子模块中包含以下预训练的模型结构：
+  - [AlexNet](https://arxiv.org/abs/1404.5997)
+  - [VGG](https://arxiv.org/abs/1409.1556)
+  - [ResNet](https://arxiv.org/abs/1512.03385)
+    - ResNet 引入了残差网络结构（Residual Network），通过残差网络，可以把网络层弄得很深
+  - [SqueezeNet](https://arxiv.org/abs/1602.07360)
+  - [DenseNet](https://arxiv.org/abs/1608.06993)
+  - [Inception v3](https://arxiv.org/abs/1512.00567)
+
+- 可以通过调用构造函数来构造具有随机权重的模型：
+
+```python
+import torchvision.models as models
+resnet18 = models.resnet18()
+alexnet = models.alexnet()
+vgg16 = models.vgg16()
+squeezenet = models.squeezenet1_0()
+densenet = models.densenet161()
+inception = models.inception_v3()
+```
+
+- PyTorch 提供了大量的预训练的模型，利用 PyTorch 的 torch.utils.model_zoo 来加载预训练模型。也可以通过传递 pretrained=True 来构造
+
+```python
+import torchvision.models as models
+resnet18 = models.resnet18(pretrained=True)
+alexnet = models.alexnet(pretrained=True)
+squeezenet = models.squeezenet1_0(pretrained=True)
+vgg16 = models.vgg16(pretrained=True)
+densenet = models.densenet161(pretrained=True)
+inception = models.inception_v3(pretrained=True)
+```
+
+- 对预训练的模型进行实例化将会下载它的权重到缓存目录，可以使用 TORCH_MODEL_ZOO 环境变量设置此目录。详情参阅：[torch.utils.model_zoo.load_url()](https://pytorch.org/docs/stable/model_zoo.html#torch.utils.model_zoo.load_url)
+- 某些模型使用具有不同训练和行为评估的模块，例如批量标准化。要在这些模式之间切换，需要使用 model.train() 或 model.eval()
+- 所有预训练模型都需要输入的图像使用相同的归一化方式，即小批量的 3 通道 RGB 图像格式（3×H×W），其中 H 和 W 至少为 224。图像必须加载到 [0,1] 的范围内，然后使用 mean = [0.485, 0.456, 0.406] 和 std = [0.229, 0.224, 0.225] 归一化
+> normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
 
 ### torchvision.transforms
 
