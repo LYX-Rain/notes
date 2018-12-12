@@ -4,6 +4,59 @@
 
 - 2017 年 1 月，Facebook 开源了 PyTorch，PyTorch 的前身是 Torch，Torch 是一个科学计算框架，支持机器学习算法，易用而且提供高效的算法实现，这得益于 LuaJIT 和一个底层的 C 实现。由于 Torch 由 Lua 语言编写，Torch 在神经网络方面具有优势，但由于 Lua 语言并不流行，开发者就把 Torch 移植到 Python 语言中，形成了 PyTorch
 
+## 说明
+
+### CUDA 语义
+
+- torch.cuda 用于设置和运行 CUDA 操作，它会记录当前选定的 GPU，并且所有 CUDA 张量会被默认地分配到该设备上创建。可以使用 torch.cuda.device 上下文管理器更改所选设备
+- 但是，一旦张量被分配，就可以直接对其进行操作，而不需考虑所选择的设备，操作的结果将始终与张量放在同一设备上
+- 默认情况下不允许跨 GPU 操作，但 copy_() 和其他具有类似复制功能的方法（如 to() 和 cuda()）除外，除非启用对等内存访问，否则尝试对不同设备上的张量任何启动操作都将会引发错误
+- 一个小例子：
+
+```python
+cuda = torch.device('cuda')     # 默认 CUDA 设备
+cuda0 = torch.device('cuda:0')
+cuda2 = torch.device('cuda:2')  # GPU 2 (these are 0-indexed)
+
+x = torch.tensor([1., 2.], device=cuda0)
+# x.device is device(type='cuda', index=0)
+y = torch.tensor([1., 2.]).cuda()
+# y.device is device(type='cuda', index=0)
+
+with torch.cuda.device(1):
+    # 在 GPU 1 上分配一个张量
+    a = torch.tensor([1., 2.], device=cuda)
+
+    # transfers a tensor from CPU to GPU 1
+    b = torch.tensor([1., 2.]).cuda()
+    # a.device and b.device are device(type='cuda', index=1)
+
+    # You can also use ``Tensor.to`` to transfer a tensor:
+    b2 = torch.tensor([1., 2.]).to(device=cuda)
+    # b.device and b2.device are device(type='cuda', index=1)
+
+    c = a + b
+    # c.device is device(type='cuda', index=1)
+
+    z = x + y
+    # z.device is device(type='cuda', index=0)
+
+    # even within a context, you can specify the device
+    # (or give a GPU index to the .cuda call)
+    d = torch.randn(2, device=cuda2)
+    e = torch.randn(2).to(cuda2)
+    f = torch.randn(2).cuda(cuda2)
+    # d.device, e.device, and f.device are all device(type='cuda', index=2)
+```
+
+#### 异步执行
+
+- 默认情况下，GPU 操作是异步的。当调用 GPU 的函数时，操作将排入特定设备的队列中，但不一定要在以后执行。这允许我们并行执行更多计算，包括在 CPU 或其他 GPU 上的操作
+- 通常情况，异步计算的效果对于调用者是不可见的，因为
+    1. 每个设备按照它们队列的顺序执行操作
+    2. PyTorch 只有在 CPU 和 GPU 之间或两个 GPU 之间复制数据时自动执行必要的同步
+- 因此，程序运行将如同每个操作同步执行一样
+
 ## Tensor（张量）
 
 - Tensor 是 PyTorch 中重要的数据结构，可认为是一个高维数组。它可以是一个数（标量）、一维数组（向量）、二维数组（矩阵）以及更高维的数组。Tensor 和 Numpy 的 ndarrays 类似，但 Tensor 可以使用 GPU 进行加速。Tensor 的使用和 Numpy 及 Matlab 的接口十分相似
@@ -134,7 +187,7 @@ Sequential(
 """
 ```
 
-### Convolution layers（卷积层）
+#### Convolution layers（卷积层）
 
 - 卷积是一种局部操作，通过一定大小的卷积核作用于局部图像区域，从而得到图像的局部信息
 - 一维卷积层，输入的尺度是(N, C_in,L)，输出尺度（ N,C_out,L_out）的计算方式：
@@ -152,11 +205,13 @@ $$ out(N_i, C_{out_j})=bias(C {out_j})+\sum^{C{in}-1}{k=0}weight(C{out_j},k)\big
   - dilation(int or tuple, optional)：卷积核元素之间的间距
   - groups(int, optional)：将输入数据分成组，in_channels 应该被组数整除
   - bias(bool, optional)：如果 bias=True，添加偏置
+
 ```python
 m = nn.Conv1d(16, 33, 3, stride=2)
 input = autograd.Variable(torch.randn(20, 16, 50))
 output = m(input)
 ```
+
 - shape:
   - 输入: (N,C_in,L_in) 
   - 输出: (N,C_out,L_out) 
@@ -266,7 +321,7 @@ $$ Sigmoid = 1/(1+exp(-x)) $$
 - torch.nn.MSELoss 类使用均方误差函数计算损失值，定义类的对象时不用传参，使用实例时传入两个维度一样的参数
 - torch.nn.CrossEntropyLoss 类用于计算交叉熵，定义类的对象时不用传参，使用实例时需要输入两个满足交叉熵的计算条件的参数
 
-### torch.autograd（自动梯度）
+### torch.nn.functional
 
 ### torch.optim（神经网络模型参数优化）
 
@@ -310,6 +365,8 @@ for input, target in dataset:
     loss.backward()
     optimizer.step()
 ```
+
+### torch.autograd（自动梯度）
 
 ## torchvision
 
