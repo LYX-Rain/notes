@@ -442,11 +442,141 @@ np.random.seed(42)
 x = np.random.randn(30)
 y = np.random.randn(30)
 
-plt.title("Example")                # 标题
-plt.xlabel("x")                     # X 坐标
-plt.ylabel("Y")                     # Y 坐标
+plt.title("Example")               # 标题
+plt.xlabel("x")                    # X 坐标
+plt.ylabel("Y")                    # Y 坐标
 X, = plt.plot(x, "r--o")
 Y, = plt.plot(y, "b-*")
-plt.legend([X,Y], ["X", "Y"])
+plt.legend([X,Y], ["X", "Y"])      # 显示函数，第一个参数是列表包含图中使用的标记和线形，第二个参数是对应图例的文字描述
 plt.show()
 ```
+
+### 子图（subplot）
+
+- 同时显示多个图像
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+a = np.random.randn(30)
+b = np.random.randn(30)
+c = np.random.randn(30)
+d = np.random.randn(30)
+
+fig = plt.figure()                 # 定义一个实例
+ax1 = fig.add_subplot(2,2,1)       # 在两行两列的子图网格中添加第一个子图
+ax2 = fig.add_subplot(2,2,2)       # 添加第二个子图
+ax3 = fig.add_subplot(2,2,3)       # ···
+ax4 = fig.add_subplot(2,2,4)       # ···
+
+A, = ax1.plot(a, "r--o")
+ax1.legend([A], ["A"])
+B, = ax2.plot(b, "b-*")
+ax2.legend([B], ["B"])
+C, = ax3.plot(c, "g-.+")
+ax3.legend([C], ["C"])
+D, = ax4.plot(d, "m:x")
+ax4.legend([D], ["D"])
+plt.show()
+```
+
+### 散点图（scatter）
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+np.random.seed(42)
+x = np.random.randn(30)
+y = np.random.randn(30)
+
+plt.scatter(x, y, c="g", marker="o", label="(X,Y)")
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.legend(loc=1)
+plt.show()
+```
+
+- 核心代码是：
+> plt.scatter(x, y, c="g", marker="o", label="(X,Y)")
+- c：指定散点图中绘制的参数点使用哪种颜色
+- marker：指定散点图中绘制的参数点使用哪种形状
+- label：指定在散点图中绘制的参数点使用的图例
+
+### 直方图（histogram）
+
+```python
+import matplotlib.pyplot as plt
+import numpy as np
+
+np.random.seed(42)
+x = np.random.randn(1000)
+plt.hist(x, bins=20, color="g")    # bin 用于指定直方图条纹数量
+plt.xlabel("X")
+plt.ylabel("Y")
+plt.show()
+```
+
+### 饼图
+
+```python
+import matplotlib.pyplot as plt
+
+labels = ['Dogs', 'Cats', 'Birds']
+sizes = [15, 50, 35]
+
+plt.pie(sizes, explode=(0,0,0.1), labels=labels, autopct='%1.1F%%', startangle=90)
+plt.axis('equal')    # 使 X 轴和 Y 轴的刻度保持一致，否者就不是圆饼
+plt.show()
+```
+
+> plt.pie(sizes, explode=(0,0,0.1), labels=labels, autopct='%1.1F%%', startangle=90)
+- sizes：指定每部分数据系列在整个圆形中的占比
+- explode：每部分数据系列之间的间隔，如果设置两个 0 和一个 0.1，就能突出第 3 部分
+- autopct：将 sizes 中的数据以所定义的浮点精度进行显示
+- startangle：开始绘制第一块饼图与 X 轴正方向的夹角度数
+
+# pandas
+
+## 介绍
+
+- Pandas 通常是被用在数据采集和存储以及数据建模和预测中间的工具，作用是数据挖掘和清理
+- pandas提供了快速，灵活和富有表现力的数据结构，目的是使“关系”或“标记”数据的工作既简单又直观。它旨在成为在Python中进行实际数据分析的高级构建块
+- pandas适合于许多不同类型的数据，包括：
+  1. 具有异构类型列的表格数据，例如SQL表格或Excel数据
+  2. 有序和无序（不一定是固定频率）时间序列数据。
+  3. 具有行列标签的任意矩阵数据（均匀类型或不同类型）
+  4. 任何其他形式的观测/统计数据集。
+- 安装：
+> pip3 install pandas
+- 或者通过conda 来安装pandas：
+> conda install pandas
+
+## 数据结构入门
+
+- Serise：1 维，带有标签的同构类型数组
+- DataFrame：2 维，表格结构，带有标签，大小可变，且可以包含异构的数据列
+- DataFrame 可以看作是 Series 的容器，即：一个 DataFrame 中可以包含若干个 Series
+
+### Series（序列）
+
+- Series 是一维结构的数据，能够保存任何数据类型（整数、字符串、浮点数、python 对象等）
+> s = pd.Series(data, index=index)
+- data：数据，可以是一个 python 字典、ndarray（NumPy中的数据结构）、标量（例如 5）
+
+```python
+import pandas as pd
+
+series1 = pd.Series([1,2,3,4])
+print(series1)
+'''
+0    1
+1    2
+2    3
+3    4
+dtype: int64
+'''
+```
+
+- 第一列是数据的索引（index）第二列是数据
