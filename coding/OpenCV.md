@@ -784,7 +784,7 @@ kernel = np.ones((3, 3), np.float32)/9
 dst = cv.filter2D(src = img, ddepth = -1, kernel = kernel)
 
 cv.imshow("Original", img)
-cv.imshow("Filtered", blur)
+cv.imshow("Filtered", dst)
 cv.waitKey(0)
 cv.destroyAllWindows()
 ```
