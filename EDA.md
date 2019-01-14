@@ -44,6 +44,10 @@
 - 将划分的各个子模块用文本（网表或硬件描述语言）、原理图等进行具体逻辑描述
 - 对于硬件描述语言描述的设计模块需要用综合器进行综合，以获得具体的电路网表文件，对于原理图等描述方式描述的设计模块经简单编译后得到逻辑网表文件
 
+### FPGA/CPLD 设计流程
+
+- 原理图/HDL文本输入→功能仿真→综合→适配→编程下载→硬件测试
+
 ## VHDL
 
 - 基本组成：库、包、实体、结构体、配置
@@ -169,7 +173,7 @@ BEGIN
         IF S = '00' THEN out <= a;
         ELSEIF S = '01' THEN out <= b;
         ELSEIF S = '10' THEN out <= c;
-        ELSEIF S = '11' THEN out <= d;
+        ELSE out <= d;
         END IF;
     END PROCESS
     -------------------------------------CASE_WHEN 法
@@ -180,9 +184,25 @@ BEGIN
             WHEN '01' => out <= b;
             WHEN '10' => out <= c;
             WHEN '11' => out <= d;
-    END PROCESS
+        END CASE;
+    END PROCESS;
+    -------------------------------------WHEN_ELSE
+    OUT <= a WHEN S = '00' ELSE
+           b WHEN S = '01' ELSE
+           c WHEN S = '10' ELSE
+           d;
+    -------------------------------------选择信号赋值语句
+    WIEH S SELECT
+        OUT <= a WHEN S = '00',
+               b WHEN S = '01',
+               c WHEN S = '10',
+               d WHEN S = '11';
 END ARCHITECTURE bhv;
 ```
+
+- WHEN_ELSE 条件信号赋值语句，属于并行语句，不需要进程语句引导
+- 条件信号赋值语句中的第一子句具有最高赋值优先级，第二句其次，以此类推
+- 选择信号赋值语句，属于并行语句
 
 ### 计数器
 
