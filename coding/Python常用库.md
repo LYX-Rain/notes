@@ -39,6 +39,12 @@ c.NotebookApp.notebook_dir = u'/home/rain/jupyter'
 c.NotebookApp.allow_remote_access = True
 ```
 
+- 启动 jupyter notebook 并指定配置文件
+> jupyter notebook --config=jupyter_config.py
+- 如果浏览器无法访问，开放防火墙对应端口
+> iptables -I INPUT -p tcp --dport 8888 -j ACCEPT
+> ipatbles save
+
 # NumPy
 
 - NumPy 的主要对象是同类型的多维数组（array）。它是一张表，所有元素（通常是数字）的类型都相同，并通过正整数元组索引。在NumPy中，维度称为轴。轴的数目为rank
