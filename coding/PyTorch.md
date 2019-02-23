@@ -67,6 +67,8 @@ with torch.cuda.device(1):
 - torch.randn：生成指定维度的浮点型随机 Tensor，生成的数据是均值为 0，方差为 1 的正态分布
 - torch.range(beg, end, step)：生成自定义范围的浮点型 Tensor，参数分别为起始值、结束值和步长
 - torch.zeros：生成维度指定的全为 0 的浮点型 Tensor
+- torch.ones：全 1 Tensor
+- torch.arange(beg, end step)：从 beg 到 end 步长为 step
 
 ```python
 import torch
@@ -82,6 +84,12 @@ tensor([[0.0000e+00, 0.0000e+00, 9.2526e+27],
         [8.8842e-43, 0.0000e+00, 0.0000e+00]])
 tensor([2., 3., 4., 5.])
 ```
+
+### 常用 Tensor 操作
+
+- 通过 torch.view 方法可以调整 tensor 的形状，必须保证调整前后元素总数一致
+- view 不会修改自身的数据，返回的新 tensor 与源 tensor 共享内存
+- resize 是另一种调整 tensor 的方法，它可以修改 tensor 的尺寸，如果新尺寸超过了原尺寸，会自动分配新的内存空间
 
 ### Tensor 的运算
 
@@ -134,13 +142,27 @@ if torch.cuda.is_available():
     print(z.to("cpu", torch.double))       # ``.to`` can also change dtype together!
 ```
 
+## autograd
+
+### Variable
+
+- autograd 中的核心数据结构是 Variable，Variable 封装了 tensor，并记录对 tensor 的操作记录用来构建计算图
+- autograd.Variable 主要包含 data、grad、grad_fn 三个属性
+- data：保存 variable 所包含的 tensor
+- grad：保存 data 对应的梯度，grad 是 variable，形状与 data 一致
+- grad_fn：指向一个 Function，记录 tensor 的操作历史，即它是什么操作的输出，用来构建计算图
+
 ## torch
 
 ### torch.nn
 
-#### Containers
+- torch.nn 是专门为神经网络设计的模块接口，nn 构建于 Autograd 之上，可以用来定义和运行神经网络
+
+#### Module
 
 - torch.nn.Module：所有神经网络模块的基类，可以通过继承此类来创建自己的神经网络
+- nn.Module 是 nn 中最重要的类，可以把它看作一个网络的封装，包含网络各层定义及 forward 方法
+- 调用 forward(input) 方法可以返回前向传播的结果
 
 ```python
 import torch.nn as nn
@@ -168,6 +190,7 @@ Net(
 """
 ```
 
+- 只要在 nn.Module 的子类中定义了 forward 函数，backward 函数就会被自动实现（利用 Autograd）
 - torch.nn.Sequential 类是 torch.nn 中的一种顺序容器，通过在容器中嵌套各种实现神经网络中具有具体功能相关的类，来快速搭建神经网络模型。参数会按照定义好的序列顺序自动传递下去
 - 下列代码效果与上等同
 
