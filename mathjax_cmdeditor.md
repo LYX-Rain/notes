@@ -1,7 +1,4 @@
-﻿
----
-
-#Cmd Markdown 公式指导手册
+﻿# Cmd Markdown 公式指导手册
 
 标签： Tutorial
 
